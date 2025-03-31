@@ -35,6 +35,9 @@ class JsonValidator extends HTMLElement {
           margin-right: 10px;
         }
       </style>
+      <label>Available Validators:</label>
+      <div id="validator-list"></div>
+
       <textarea placeholder="Paste JSON here..."></textarea>
       <button id="validate">Validate</button>
       <button id="submit" style="display: none;">Submit</button>
@@ -43,6 +46,17 @@ class JsonValidator extends HTMLElement {
   }
 
   async connectedCallback() {
+    const validatorList = this.shadowRoot.querySelector('#validator-list');
+    const available = JSON.parse(this.getAttribute('available-validators') || "[]");
+
+    this.availableValidators = available;
+    validatorList.innerHTML = available.map((v, i) => `
+      <label>
+        <input type="checkbox" value="${v.url}" ${i === 0 ? "checked" : ""}>
+        ${v.name}
+      </label><br>
+    `).join('');
+
     this.py = await initPyodide();
     this.textarea = this.shadowRoot.querySelector('textarea');
     this.validateBtn = this.shadowRoot.querySelector('#validate');
@@ -54,6 +68,10 @@ class JsonValidator extends HTMLElement {
   }
 
   async runValidation() {
+    const checkboxes = this.shadowRoot.querySelectorAll('#validator-list input[type=checkbox]');
+    const selectedValidators = [...checkboxes]
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
     const raw = this.textarea.value;
     let data;
 
@@ -65,12 +83,11 @@ class JsonValidator extends HTMLElement {
       return;
     }
 
-    const validators = JSON.parse(this.getAttribute('validators') || "[]");
     const results = [];
 
     let allPassed = true;
 
-    for (const url of validators) {
+    for (const url of selectedValidators) {
       const code = await fetch(url).then(res => res.text());
       await this.py.runPythonAsync(code);
       this.py.globals.set('input_data', data);
@@ -108,7 +125,7 @@ class JsonValidator extends HTMLElement {
       });
 
       const text = await res.text();
-      this.output.textContent = `✅ Submitted!\nResponse:\n${text}`;
+      this.output.textContent = `✅ Submitted!\nResponse:\n${text}\nYou can see results here: https://webhook-test.com/payload/998b0c41-140f-447d-9ee0-b41576baf530`;
     } catch (e) {
       this.output.textContent = `❌ Submit failed: ${e}`;
     }
