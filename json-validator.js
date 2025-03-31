@@ -9,10 +9,9 @@ class JsonValidator extends HTMLElement {
         :host {
           display: block;
           padding: 1rem;
+          background: #f9f9f9;
           border: 1px solid #ccc;
           border-radius: 8px;
-          background: #f9f9f9;
-          font-family: sans-serif;
           max-width: 600px;
         }
         textarea {
@@ -32,20 +31,26 @@ class JsonValidator extends HTMLElement {
           padding: 8px 16px;
           font-size: 1rem;
           cursor: pointer;
+          margin-top: 10px;
+          margin-right: 10px;
         }
       </style>
       <textarea placeholder="Paste JSON here..."></textarea>
-      <button>Validate</button>
-      <pre>Validation output will appear here</pre>
+      <button id="validate">Validate</button>
+      <button id="submit" style="display: none;">Submit</button>
+      <pre id="output">Validation output will appear here</pre>
     `;
   }
 
   async connectedCallback() {
     this.py = await initPyodide();
     this.textarea = this.shadowRoot.querySelector('textarea');
-    this.button = this.shadowRoot.querySelector('button');
-    this.output = this.shadowRoot.querySelector('pre');
-    this.button.addEventListener('click', () => this.runValidation());
+    this.validateBtn = this.shadowRoot.querySelector('#validate');
+    this.submitBtn = this.shadowRoot.querySelector('#submit');
+    this.output = this.shadowRoot.querySelector('#output');
+
+    this.validateBtn.addEventListener('click', () => this.runValidation());
+    this.submitBtn.addEventListener('click', () => this.postJson());
   }
 
   async runValidation() {
@@ -55,23 +60,58 @@ class JsonValidator extends HTMLElement {
     try {
       data = JSON.parse(raw);
     } catch (e) {
-      this.output.textContent = "Invalid JSON";
+      this.output.textContent = "❌ Invalid JSON";
+      this.submitBtn.style.display = 'none';
       return;
     }
 
-    const validators = this.getAttribute('validators');
-    const validatorUrls = JSON.parse(validators);
-
+    const validators = JSON.parse(this.getAttribute('validators') || "[]");
     const results = [];
-    for (const url of validatorUrls) {
+
+    let allPassed = true;
+
+    for (const url of validators) {
       const code = await fetch(url).then(res => res.text());
       await this.py.runPythonAsync(code);
       this.py.globals.set('input_data', data);
       const result = await this.py.runPythonAsync("validate(input_data)");
       results.push({ validator: url.split('/').pop(), result });
+
+      // ✅ Simple check: if result contains "fail" or "missing", assume it failed
+      const resultStr = JSON.stringify(result).toLowerCase();
+      if (resultStr.includes('fail') || resultStr.includes('missing') || resultStr.includes('error')) {
+        allPassed = false;
+      }
     }
 
     this.output.textContent = JSON.stringify(results, null, 2);
+
+    // ✅ Show submit button only if all validations passed
+    this.submitBtn.style.display = allPassed ? 'inline-block' : 'none';
+
+    // Store the data to use for submission
+    this.validatedData = data;
+  }
+
+  async postJson() {
+    const url = this.getAttribute('submit-url');
+    if (!url || !this.validatedData) {
+      this.output.textContent = "❌ Submit URL missing or no valid data.";
+      return;
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.validatedData)
+      });
+
+      const text = await res.text();
+      this.output.textContent = `✅ Submitted!\nResponse:\n${text}`;
+    } catch (e) {
+      this.output.textContent = `❌ Submit failed: ${e}`;
+    }
   }
 }
 
