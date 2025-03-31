@@ -51,10 +51,11 @@ class JsonValidator extends HTMLElement {
 
     this.availableValidators = available;
     validatorList.innerHTML = available.map((v, i) => `
-      <label>
+      <label style="display: block; margin-bottom: 5px;">
         <input type="checkbox" value="${v.url}" ${i === 0 ? "checked" : ""}>
         ${v.name}
-      </label><br>
+        <a href="${v.url}" target="_blank" style="margin-left: 10px; font-size: 0.9em;">View Code</a>
+      </label>
     `).join('');
 
     this.py = await initPyodide();
