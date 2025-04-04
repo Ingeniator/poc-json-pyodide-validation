@@ -12,7 +12,7 @@ from pyodide.ffi import JsProxy
 
 class BaseValidator(ABC):
 
-    def __init__(self, options: sict[str, Any] = None):
+    def __init__(self, options: dict[str, Any] = None):
         self.options = options or {}
 
     @classmethod
