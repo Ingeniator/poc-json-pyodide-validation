@@ -45,18 +45,50 @@ class JsonValidator extends HTMLElement {
     `;
   }
 
-  async connectedCallback() {
-    const validatorList = this.shadowRoot.querySelector('#validator-list');
-    const available = JSON.parse(this.getAttribute('available-validators') || "[]");
-
-    this.availableValidators = available;
-    validatorList.innerHTML = available.map((v, i) => `
+  async renderValidators(validatorList, available_validators) {
+    validatorList.innerHTML = available_validators.map((v, i) => `
       <label style="display: block; margin-bottom: 5px;">
         <input type="checkbox" value="${v.url}" ${i === 0 ? "checked" : ""}>
         ${v.name}
         <a href="${v.url}" target="_blank" style="margin-left: 10px; font-size: 0.9em;">View Code</a>
       </label>
     `).join('');
+  }
+
+  async connectedCallback() {
+    const validatorList = this.shadowRoot.querySelector('#validator-list');
+
+    const githubSpec = this.getAttribute('validator-source-github');
+    if (githubSpec) {
+      const match = githubSpec.match(/^([^@]+)@([^:]+):(.+)$/); // org/repo@branch:folder
+      if (match) {
+        const [_, repo, branch, folder] = match;
+        const apiUrl = `https://api.github.com/repos/${repo}/contents/${folder}?ref=${branch}`;
+    
+        try {
+          const res = await fetch(apiUrl);
+          if (!res.ok) throw new Error("GitHub API error");
+    
+          const files = await res.json();
+          const available_validators = files
+            .filter(file => file.name.endsWith(".py"))
+            .map(file => ({
+              name: file.name.replace("validate_", "").replace(".py", "").replace(/_/g, " ").trim(),
+              url: file.download_url
+            }));
+    
+          this.availableValidators = available_validators;
+          this.renderValidators(validatorList, available_validators);
+        } catch (e) {
+          validatorList.innerHTML = `<p style="color:red;">❌ Failed to fetch from GitHub: ${e}</p>`;
+        }
+      }
+    }
+    else {
+      const available_validators = JSON.parse(this.getAttribute('available-validators') || "[]");
+      this.availableValidators = available_validators;
+      this.renderValidators(validatorList, available_validators);
+    }
 
     this.py = await initPyodide();
     this.textarea = this.shadowRoot.querySelector('textarea');

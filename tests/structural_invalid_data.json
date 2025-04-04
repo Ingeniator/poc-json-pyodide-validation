@@ -1,0 +1,15 @@
+
+[
+    {
+      "messages": [
+        {"content": "Skipped role key!"},
+        {"role": "assistant", "content": "Hi there! How can I help you today?"}
+      ]
+    },
+    {
+      "wrong_key": [
+        {"role": "user", "content": "How do I reset my device?"},
+        {"role": "assistant", "content": "You can reset it by holding the power button for 10 seconds."}
+      ]
+    }
+  ]
