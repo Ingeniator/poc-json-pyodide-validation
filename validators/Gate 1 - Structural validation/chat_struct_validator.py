@@ -26,7 +26,7 @@ class ChatSample(BaseModel):
 
 class ChatStructureValidator(BaseValidator):
 
-    def _validate(self, data: List[Dict]) -> Dict[str, Any]:
+    def _validate(self, data: list[dict]) -> dict[str, Any]:
         errors = []
         for i, item in enumerate(data):
             try:
