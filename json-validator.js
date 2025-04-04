@@ -45,17 +45,41 @@ class JsonValidator extends HTMLElement {
     `;
   }
 
-  async renderValidators(validatorList, available_validators) {
-    validatorList.innerHTML = available_validators.map((v, i) => `
-      <label style="display: block; margin-bottom: 5px;">
-        <input type="checkbox" value="${v.url}" ${i === 0 ? "checked" : ""}>
-        ${v.name}
-        <a href="${v.url}" target="_blank" style="margin-left: 10px; font-size: 0.9em;">View Code</a>
-      </label>
-    `).join('');
+  renderHierarchicalValidators(container, validators) {
+    const grouped = {};
+
+    validators.forEach(v => {
+      const parts = v.name.split('/');
+      const group = parts[0];
+      if (!grouped[group]) grouped[group] = [];
+      grouped[group].push(v);
+    });
+
+    container.innerHTML = Object.entries(grouped).map(([folder, items]) => {
+      return `
+        <div class="folder">${folder}</div>
+        ${items.map(v => `
+          <div class="file">
+            <label>
+              <input type="checkbox" value="${v.url}">
+              ${v.name.split('/').slice(1).join('/')}
+              <a href="${v.url}" target="_blank">[View]</a>
+            </label>
+          </div>
+        `).join('')}
+      `;
+    }).join('');
   }
 
   async connectedCallback() {
+    this.py = await initPyodide();
+    this.textarea = this.shadowRoot.querySelector('textarea');
+    this.validateBtn = this.shadowRoot.querySelector('#validate');
+    this.submitBtn = this.shadowRoot.querySelector('#submit');
+    this.output = this.shadowRoot.querySelector('#output');
+    this.validateBtn.addEventListener('click', () => this.runValidation());
+    this.submitBtn.addEventListener('click', () => this.postJson());
+    
     const validatorList = this.shadowRoot.querySelector('#validator-list');
 
     const githubSpec = this.getAttribute('validator-source-github');
@@ -63,41 +87,31 @@ class JsonValidator extends HTMLElement {
       const match = githubSpec.match(/^([^@]+)@([^:]+):(.+)$/); // org/repo@branch:folder
       if (match) {
         const [_, repo, branch, folder] = match;
-        const apiUrl = `https://api.github.com/repos/${repo}/contents/${folder}?ref=${branch}`;
+        const apiUrl = `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`;
     
         try {
           const res = await fetch(apiUrl);
           if (!res.ok) throw new Error("GitHub API error");
+
+          const tree = (await res.json()).tree;
     
-          const files = await res.json();
-          const available_validators = files
-            .filter(file => file.name.endsWith(".py"))
-            .map(file => ({
-              name: file.name.replace("validate_", "").replace(".py", "").replace(/_/g, " ").trim(),
-              url: file.download_url
-            }));
+          const available_validators = tree.filter(f =>
+            f.type === 'blob' &&
+            f.path.startsWith(folder + '/') &&
+            f.path.endsWith('.py')
+          ).map(f => ({
+            name: f.path.replace(folder + '/', ''),
+            folder: f.path.replace(folder + '/', '').split('/')[0],
+            url: `https://raw.githubusercontent.com/${repo}/${branch}/${f.path}`
+          }));
     
           this.availableValidators = available_validators;
-          this.renderValidators(validatorList, available_validators);
+          this.renderHierarchicalValidators(validatorList, available_validators);
         } catch (e) {
           validatorList.innerHTML = `<p style="color:red;">❌ Failed to fetch from GitHub: ${e}</p>`;
         }
       }
     }
-    else {
-      const available_validators = JSON.parse(this.getAttribute('available-validators') || "[]");
-      this.availableValidators = available_validators;
-      this.renderValidators(validatorList, available_validators);
-    }
-
-    this.py = await initPyodide();
-    this.textarea = this.shadowRoot.querySelector('textarea');
-    this.validateBtn = this.shadowRoot.querySelector('#validate');
-    this.submitBtn = this.shadowRoot.querySelector('#submit');
-    this.output = this.shadowRoot.querySelector('#output');
-
-    this.validateBtn.addEventListener('click', () => this.runValidation());
-    this.submitBtn.addEventListener('click', () => this.postJson());
   }
 
   async runValidation() {
@@ -105,9 +119,9 @@ class JsonValidator extends HTMLElement {
     const selectedValidators = [...checkboxes]
       .filter(cb => cb.checked)
       .map(cb => cb.value);
+
     const raw = this.textarea.value;
     let data;
-
     try {
       data = JSON.parse(raw);
     } catch (e) {
