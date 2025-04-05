@@ -1,0 +1,21 @@
+{
+    "input": [
+        {
+            "messages": [
+                { "role": "system", "content": "You are helpful." },
+                { "role": "user", "content": "Hello!" },
+                { "role": "assistant", "content": "Hi there!" }
+            ]
+        },
+        {
+            "messages": [
+                { "role": "user", "content": "Hello!" },
+                { "role": "assistant", "content": "Hi there!" }
+            ]
+        }
+    ],
+    "expect": {
+      "ChatStructureValidator": "pass",
+      "SomeOtherValidator": "pass"
+    }
+  }

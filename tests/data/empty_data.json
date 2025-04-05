@@ -1,0 +1,6 @@
+{
+    "input": {},
+    "expect": {
+      "ChatStructureValidator": "fail"
+    }
+  }

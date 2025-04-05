@@ -1,0 +1,35 @@
+{
+    "input": [
+        {
+            "messages": [
+                { "content": "Here is missed role." },
+                { "role": "user", "content": "Hello!" },
+                { "role": "assistant", "content": "Hi there!" }
+            ]
+        },
+        {
+            "messages": [
+                { "role_not_exist": "system", "content": "You are helpful." },
+                { "role": "user", "content": "Hello!" },
+                { "role": "assistant", "content": "Hi there!" }
+            ]
+        },
+        {
+            "messages": [
+                { "role": "missing content"},
+                { "role": "user", "content": "Hello!" },
+                { "role": "assistant", "content": "Hi there!" }
+            ]
+        },
+        {
+            "messages": [
+                { "role": "assistant", "content": "Wrong message order!" },
+                { "role": "user", "content": "Hello!" }
+            ]
+        }
+    ],
+    "expect": {
+      "ChatStructureValidator": "fail",
+      "SomeOtherValidator": "pass"
+    }
+  }
