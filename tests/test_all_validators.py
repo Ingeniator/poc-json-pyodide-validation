@@ -3,7 +3,6 @@ import pkgutil
 import validators
 import inspect
 from validators.base_validator import BaseValidator
-import pytest
 
 def get_validator_classes():
     validator_classes = []

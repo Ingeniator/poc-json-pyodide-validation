@@ -1,0 +1,15 @@
+[project]
+name = "poc-json-pyodide-validation"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.11.2",
+    "pytest>=8.3.5",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.4",
+]

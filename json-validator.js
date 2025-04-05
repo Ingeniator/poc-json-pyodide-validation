@@ -105,7 +105,8 @@ class JsonValidator extends HTMLElement {
 
           if (baseFile) {
             const baseCode = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/${baseValidatorPath}`).then(r => r.text());
-            this.py.FS.writeFile('base_validator.py', baseCode); // ✅ Load base_validator.py first
+            this.py.FS.mkdir('validators');
+            this.py.FS.writeFile('validators/base_validator.py', baseCode); // ✅ Load base_validator.py first
           }
 
           const validators = tree.filter(f =>

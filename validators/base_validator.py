@@ -8,7 +8,10 @@ tags: [abstract]
 
 from abc import ABC, abstractmethod
 from typing import Any
-from pyodide.ffi import JsProxy
+try:
+    from pyodide.ffi import JsProxy
+except ImportError:
+    JsProxy = None  # We're not in Pyodide
 
 class BaseValidator(ABC):
 
@@ -16,20 +19,36 @@ class BaseValidator(ABC):
         self.options = options or {}
 
     @classmethod
-    def validate(self, js_data: JsProxy | list[dict[str, Any]]) -> dict[str, Any]:
+    def validate(self, js_data: "JsProxy | list[dict[str, Any]]") -> dict[str, Any]:
         """
         Entry point for Pyodide: receives JsProxy or Python list
         """
-        if isinstance(js_data, JsProxy):
+        if hasattr(js_data, "to_py"):
             data = js_data.to_py()
         else:
             data = js_data
-        return self._validate(data)
+        try:
+            errors = self._validate(data)
+            if errors:
+                return {
+                    "status": "fail",
+                    "errors": errors,
+                    "validator": self.__class__.__name__
+                }
+            return {
+                "status": "pass",
+                "validator": self.__class__.__name__
+            }
+        except Exception as e:
+            return {
+                    "status": "fail",
+                    "errors": str(e),
+                    "validator": self.__class__.__name__
+                }
 
     @abstractmethod
-    def _validate(self, data: list[dict[str, Any]]) -> dict[str, Any]:
+    def _validate(self, data: list[dict[str, Any]]) -> list[str]:
         """
-        Implement this in subclasses. Must return a dict like:
-        {"status": "pass"} or {"status": "fail", "errors": [...]}
+        Implement this in subclasses. Must return a error array if any
         """
         pass
