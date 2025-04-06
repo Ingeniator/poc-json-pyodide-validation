@@ -10,6 +10,7 @@ tags: [structure, pydantic, schema]
 from pydantic import BaseModel, validator, ValidationError
 from typing import Literal
 from validators.base_validator import BaseValidator
+import asyncio
 
 class Message(BaseModel):
     role: Literal["user", "assistant", "system"]
@@ -33,7 +34,7 @@ class ChatSample(BaseModel):
 
 class ChatStructureValidator(BaseValidator):
 
-    def _validate(self, data: list[dict]) -> list[str]:
+    async def _validate(self, data: list[dict]) -> list[str]:
         try:
             errors = []
             for i, item in enumerate(data):

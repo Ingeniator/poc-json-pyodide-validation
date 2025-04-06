@@ -8,6 +8,7 @@ tags: [abstract]
 
 from abc import ABC, abstractmethod
 from typing import Any
+import asyncio
 try:
     from pyodide.ffi import JsProxy
 except ImportError:
@@ -27,7 +28,7 @@ class BaseValidator(ABC):
         else:
             data = js_data
         try:
-            errors = self._validate(data)
+            errors = await self._validate(data)
             if errors:
                 return {
                     "status": "fail",
@@ -46,7 +47,7 @@ class BaseValidator(ABC):
                 }
 
     @abstractmethod
-    def _validate(self, data: list[dict[str, Any]]) -> list[str]:
+    async def _validate(self, data: list[dict[str, Any]]) -> list[str]:
         """
         Implement this in subclasses. Must return a error array if any
         """

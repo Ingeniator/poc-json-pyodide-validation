@@ -226,16 +226,20 @@ class JsonValidator extends HTMLElement {
         this.py.globals.set("input_data", data);
         await this.py.runPythonAsync(`
                         import traceback
+                        import asyncio
                         import json
-                        try:
-                            output_result = validator.validate(input_data)
-                        except Exception as e:
-                            output_result = {
-                                "status": "fail",
-                                "errors": traceback.format_exc(),
-                                "validator": validator.__class__.__name__
-                            }
-                        output_result_json = json.dumps(output_result)
+                        async def _run_validate():
+                          try:
+                              global output_result, output_result_json
+                              output_result = await validator.validate(input_data)
+                          except Exception as e:
+                              output_result = {
+                                  "status": "fail",
+                                  "errors": traceback.format_exc(),
+                                  "validator": validator.__class__.__name__
+                              }
+                          output_result_json = json.dumps(output_result)
+                        await _run_validate()
                         `);
         const result = JSON.parse(this.py.globals.get("output_result_json"));
         results.push({ validator: url.split('/').pop(), result });
