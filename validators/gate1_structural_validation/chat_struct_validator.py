@@ -28,12 +28,16 @@ class ChatStructureValidator(BaseValidator):
 
     def _validate(self, data: list[dict]) -> list[str]:
         try:
-            errors = []
+            errors = ["one"]
             for i, item in enumerate(data):
                 try:
                     ChatSample(**item)
                 except ValidationError as e:
-                    errors.append({"index": i, "error": str(e)})
+                    errors.append({
+                        "index": i,
+                        "error": e.errors(),  # structured error format
+                        "message": str(e)
+                    })
             return errors
         except ValidationError as e:
             return [ str(e) ]

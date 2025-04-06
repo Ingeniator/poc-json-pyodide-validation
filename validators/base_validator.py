@@ -18,7 +18,6 @@ class BaseValidator(ABC):
     def __init__(self, options: dict[str, Any] = None):
         self.options = options or {}
 
-    @classmethod
     def validate(self, js_data: "JsProxy | list[dict[str, Any]]") -> dict[str, Any]:
         """
         Entry point for Pyodide: receives JsProxy or Python list
