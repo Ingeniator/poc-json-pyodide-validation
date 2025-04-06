@@ -36,10 +36,9 @@ class JsonValidator extends HTMLElement {
           margin-right: 10px;
         }
       </style>
+      <textarea placeholder="Paste JSON here..."></textarea>
       <label>Available Validators:</label>
       <div id="validator-list"></div>
-
-      <textarea placeholder="Paste JSON here..."></textarea>
       <button id="validate">Validate</button>
       <button id="submit" style="display: none;">Submit</button>
       <pre id="output">Validation output will appear here</pre>
@@ -58,7 +57,7 @@ class JsonValidator extends HTMLElement {
 
     container.innerHTML = Object.entries(grouped).map(([folder, items]) => {
       return `
-        <div class="folder">${folder}</div>
+        <div class="folder">${folder.replaceAll("_", " ")}</div>
         ${items.map(v => `
           <div class="file">
             <label>
@@ -73,23 +72,34 @@ class JsonValidator extends HTMLElement {
   }
 
   async connectedCallback() {
-    this.py = await initPyodide();
+
+    const validatorList = this.shadowRoot.querySelector('#validator-list');
+
     this.textarea = this.shadowRoot.querySelector('textarea');
     this.validateBtn = this.shadowRoot.querySelector('#validate');
     this.submitBtn = this.shadowRoot.querySelector('#submit');
     this.output = this.shadowRoot.querySelector('#output');
     this.validateBtn.addEventListener('click', () => this.runValidation());
     this.submitBtn.addEventListener('click', () => this.postJson());
-    
-    const validatorList = this.shadowRoot.querySelector('#validator-list');
+
+    initPyodide();  // kick off background loading without await
+
+    function nextIdle() {
+      return new Promise(resolve =>
+        'requestIdleCallback' in window
+          ? requestIdleCallback(resolve)
+          : setTimeout(resolve, 0)
+      );
+    }
 
     const githubSpec = this.getAttribute('validator-source-github');
     if (githubSpec) {
       const match = githubSpec.match(/^([^@]+)@([^:]+):(.+)$/); // org/repo@branch:folder
       if (match) {
         const [_, repo, branch, folder] = match;
+        validatorList.innerHTML = "📦 Fetching validator list...";
+        await nextIdle();
         const apiUrl = `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`;
-        console.log(apiUrl)
         try {
           const res = await fetch(apiUrl);
           if (!res.ok) throw new Error("GitHub API error");
@@ -102,11 +112,9 @@ class JsonValidator extends HTMLElement {
             f.type === 'blob' &&
             f.path === baseValidatorPath
           );
-
           if (baseFile) {
-            const baseCode = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/${baseValidatorPath}`).then(r => r.text());
-            this.py.FS.mkdir('validators');
-            this.py.FS.writeFile('validators/base_validator.py', baseCode); // ✅ Load base_validator.py first
+            const baseUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${folder}/base_validator.py`;
+            this.baseValidatorCode = await fetch(baseUrl).then(res => res.text());
           }
 
           const validators = tree.filter(f =>
@@ -121,7 +129,7 @@ class JsonValidator extends HTMLElement {
             url: `https://raw.githubusercontent.com/${repo}/${branch}/${f.path}`
           }));
     
-          const enriched = await Promise.all(validators.map(async (v) => {
+          const settled = await Promise.allSettled(validators.map(async (v) => {
             try {
               const content = await fetch(v.url).then(res => res.text());
               const match = content.match(/---[\r\n]+([\s\S]*?)---/);  // YAML frontmatter
@@ -136,6 +144,11 @@ class JsonValidator extends HTMLElement {
             }
             return v;
           }));
+          
+          // ✅ Extract only successful ones
+            const enriched = settled
+            .filter(result => result.status === "fulfilled")
+            .map(result => result.value);
 
           this.availableValidators = validators;
           this.renderHierarchicalValidators(validatorList, enriched);
@@ -147,6 +160,25 @@ class JsonValidator extends HTMLElement {
   }
 
   async runValidation() {
+    this.output.textContent = "⏳ Waiting for Python engine...";
+    this.py = await initPyodide();  // waits if still loading
+
+    if (!this._baseLoaded) {
+      this.output.textContent = "⏳ Loading base validator...";
+      const fs = this.py.FS;
+      if (this.baseValidatorCode) {
+        const exists = fs.analyzePath('validators/base_validator.py').exists;
+        if (!exists) {
+          const validatorsPath = fs.analyzePath('validators');
+          if (!validatorsPath.exists) fs.mkdir('validators');
+          fs.writeFile('validators/base_validator.py', this.baseValidatorCode);
+        }
+      }
+      this._baseLoaded = true; // ✅ Prevents re-checking FS next time
+    } 
+
+    this.output.textContent = "🚀 Running validation...";
+
     const checkboxes = this.shadowRoot.querySelectorAll('#validator-list input[type=checkbox]');
     const selectedValidators = [...checkboxes]
       .filter(cb => cb.checked)
@@ -166,12 +198,45 @@ class JsonValidator extends HTMLElement {
 
     let allPassed = true;
 
+    if (!this.loadedValidators) {
+      this.loadedValidators = new Set();
+    }
+
     for (const url of selectedValidators) {
       try {
         const code = await fetch(url).then(res => res.text());
-        await this.py.runPythonAsync(code);
-        this.py.globals.set('input_data', data);
-        const result = await this.py.runPythonAsync("validate(input_data)");
+
+        if (!this.loadedValidators.has(url)) {
+          await this.py.runPythonAsync(code); // ✅ Load only once
+          this.loadedValidators.add(url);     // ✅ Remember it
+        }
+
+        this.py.runPython(`
+import inspect
+from validators.base_validator import BaseValidator
+
+cls = next(
+    obj for name, obj in globals().items()
+    if inspect.isclass(obj)
+    and issubclass(obj, BaseValidator)
+    and obj is not BaseValidator
+)
+validator = cls()
+`);
+        this.py.globals.set("input_data", data);
+        await this.py.runPythonAsync(`
+import traceback
+try:
+    output_result = validator.validate(input_data)
+except Exception as e:
+    output_result = {
+        "status": "fail",
+        "errors": traceback.format_exc(),
+        "validator": validator.__class__.__name__
+    }
+output_result
+`);
+        const result = this.py.globals.get("output_result").toJs({ dict_converter: Object });
         results.push({ validator: url.split('/').pop(), result });
 
         // ✅ Simple check: if result contains "fail" or "missing", assume it failed

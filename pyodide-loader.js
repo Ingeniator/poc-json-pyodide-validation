@@ -1,9 +1,11 @@
-let pyodide;
+let pyodideReady;
 
 export async function initPyodide() {
-  if (!pyodide) {
-    pyodide = await loadPyodide();
-    await pyodide.loadPackage('pydantic');
+  if (!pyodideReady) {
+    pyodideReady = loadPyodide().then(async (py) => {
+      await py.loadPackage('pydantic');
+      return py;
+    });
   }
-  return pyodide;
+  return pyodideReady;
 }
