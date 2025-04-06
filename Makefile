@@ -49,7 +49,7 @@ commit:  ## Auto-format code (Python example)
 
 .PHONY: test
 test:  ## Run tests
-	pytest
+	python3 -m pytest
 
 .PHONY: test-coverage
 test-coverage:  ## Run tests with coverage report
