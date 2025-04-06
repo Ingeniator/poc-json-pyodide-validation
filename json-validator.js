@@ -212,31 +212,32 @@ class JsonValidator extends HTMLElement {
         }
 
         this.py.runPython(`
-import inspect
-from validators.base_validator import BaseValidator
+                  import inspect
+                  from validators.base_validator import BaseValidator
 
-cls = next(
-    obj for name, obj in globals().items()
-    if inspect.isclass(obj)
-    and issubclass(obj, BaseValidator)
-    and obj is not BaseValidator
-)
-validator = cls()
-`);
+                  cls = next(
+                      obj for name, obj in globals().items()
+                      if inspect.isclass(obj)
+                      and issubclass(obj, BaseValidator)
+                      and obj is not BaseValidator
+                  )
+                  validator = cls()
+                  `);
         this.py.globals.set("input_data", data);
         await this.py.runPythonAsync(`
-import traceback
-try:
-    output_result = validator.validate(input_data)
-except Exception as e:
-    output_result = {
-        "status": "fail",
-        "errors": traceback.format_exc(),
-        "validator": validator.__class__.__name__
-    }
-output_result
-`);
-        const result = this.py.globals.get("output_result").toJs({ dict_converter: Object });
+                        import traceback
+                        import json
+                        try:
+                            output_result = validator.validate(input_data)
+                        except Exception as e:
+                            output_result = {
+                                "status": "fail",
+                                "errors": traceback.format_exc(),
+                                "validator": validator.__class__.__name__
+                            }
+                        output_result_json = json.dumps(output_result)
+                        `);
+        const result = JSON.parse(this.py.globals.get("output_result_json"));
         results.push({ validator: url.split('/').pop(), result });
 
         // ✅ Simple check: if result contains "fail" or "missing", assume it failed
