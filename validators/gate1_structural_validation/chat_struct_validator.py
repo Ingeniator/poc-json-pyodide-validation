@@ -12,7 +12,7 @@ from typing import Literal
 from validators.base_validator import BaseValidator
 
 class Message(BaseModel):
-    role: Literal["user", "assistant"]
+    role: Literal["user", "assistant", "system"]
     content: str
 
 class ChatSample(BaseModel):
@@ -20,9 +20,16 @@ class ChatSample(BaseModel):
 
     @validator("messages")
     def must_start_with_user(cls, v):
-        if not v or v[0].role != "user":
-            raise ValueError("Chat must start with a user message.")
-        return v
+        if not v:
+            raise ValueError("Chat must contain messages.")
+
+        roles = [msg.role for msg in v]
+        if roles[0] == "user":
+            return v
+        if roles[0] == "system" and len(roles) > 1 and roles[1] == "user":
+            return v
+
+        raise ValueError("Chat must start with a user message, or a system message followed by a user.")
 
 class ChatStructureValidator(BaseValidator):
 
@@ -35,8 +42,7 @@ class ChatStructureValidator(BaseValidator):
                 except ValidationError as e:
                     errors.append({
                         "index": i,
-                        "error": e.errors(),  # structured error format
-                        "message": str(e)
+                        "error": str(e)
                     })
             return errors
         except ValidationError as e:
