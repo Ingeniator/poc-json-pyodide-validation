@@ -22,8 +22,8 @@ class QuantitySizeValidator(BaseValidator):
         # Optional: Check that each dialog has at least a minimum number of turns.
         min_turns = self.options.get("min_turns", 2)
         for i, item in enumerate(data):
-            # Assuming each dialog is stored under the key "dialog"
-            dialog = item.get("dialog", [])
+            # Assuming each dialog is stored under the key "messages"
+            dialog = item.get("messages", [])
             if len(dialog) < min_turns:
                 errors.append(f"Dialog {i} has only {len(dialog)} turn(s); at least {min_turns} turns are recommended.")
 
