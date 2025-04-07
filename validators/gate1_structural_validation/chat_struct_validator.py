@@ -19,7 +19,7 @@ class Message(BaseModel):
 class ChatSample(BaseModel):
     messages: list[Message]
 
-    @validator("messages")
+    @field_validator("messages")
     def must_start_with_user(cls, v):
         if not v:
             raise ValueError("Chat must contain messages.")
@@ -37,6 +37,9 @@ class ChatStructureValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[str]:
         try:
             errors = []
+            if not data:
+                errors.append("Empty array detected")
+                return errors
             for i, item in enumerate(data):
                 try:
                     ChatSample(**item)

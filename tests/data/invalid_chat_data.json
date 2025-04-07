@@ -26,10 +26,36 @@
                 { "role": "assistant", "content": "Wrong message order!" },
                 { "role": "user", "content": "Hello!" }
             ]
+        },
+        {
+            "messages": [
+                { "role": "assistant", "content": "Duplicate message!" },
+                { "role": "user", "content": "Hello!" }
+            ]
+        },
+        {
+            "messages": [
+                { "role": "assistant", "content": "Duplicate message!" },
+                { "role": "user", "content": "Hello!" }
+            ]
+        },
+        {
+            "messages": [
+                { "role": "assistant", "content": "Link non-exist!" },
+                { "role": "user", "content": "Hello! https://nowhe.re" }
+            ]
+        },
+        {
+            "messages": [
+                { "role": "assistant", "content": "I hope everything is wonderful. Missmatched lang!" },
+                { "role": "user", "content": "Bonjour, comment ça va ?" }
+            ]
         }
     ],
     "expect": {
       "ChatStructureValidator": "fail",
-      "SomeOtherValidator": "pass"
+      "DeduplicationValidator": "fail",
+      "LinkAvailabilityValidator": "fail",
+      "LanguageConsistencyValidator": "fail"
     }
   }

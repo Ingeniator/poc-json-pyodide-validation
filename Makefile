@@ -49,7 +49,10 @@ commit:  ## Auto-format code (Python example)
 
 .PHONY: test
 test:  ## Run tests
-	python3 -m pytest
+	uv venv
+	source $$(pwd)/.venv/bin/activate
+	uv pip install pytest pytest-asyncio
+	PYTHONPATH=$$(pwd) uv run pytest
 
 .PHONY: test-coverage
 test-coverage:  ## Run tests with coverage report

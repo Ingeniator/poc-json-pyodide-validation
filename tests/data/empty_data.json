@@ -1,6 +1,9 @@
 {
     "input": {},
     "expect": {
-      "ChatStructureValidator": "fail"
+      "ChatStructureValidator": "fail",
+      "DeduplicationValidator": "pass",
+      "LinkAvailabilityValidator": "pass",
+      "LanguageConsistencyValidator": "pass"
     }
   }

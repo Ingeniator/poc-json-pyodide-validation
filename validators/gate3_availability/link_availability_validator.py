@@ -14,7 +14,7 @@ import js
 URL_PATTERN = re.compile(r"https?://[^\s]+")
 
 class LinkAvailabilityValidator(BaseValidator):
-    async def _validate(self, data):
+    async def _validate(self, data: list[dict]) -> list[str]:
         errors = []
 
         for i, sample in enumerate(data):
