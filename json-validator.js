@@ -74,7 +74,7 @@ class JsonValidator extends HTMLElement {
           return `
             <div class="file">
               <label>
-                <input type="checkbox" value="${v.url}">
+                <input type="checkbox" value="${v.url}" checked>
                 ${labelText}
                 <a href="${v.url}" target="_blank">[View]</a>
               </label>
