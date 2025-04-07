@@ -13,7 +13,7 @@ class JsonValidator extends HTMLElement {
           background: #f9f9f9;
           border: 1px solid #ccc;
           border-radius: 8px;
-          max-width: 600px;
+          max-width: 800px;
         }
         textarea {
           width: 100%;
@@ -37,7 +37,7 @@ class JsonValidator extends HTMLElement {
         }
       </style>
       <textarea placeholder="Paste JSON here..."></textarea>
-      <label>Available Validators:</label>
+      <h2>Available Validators:</h2>
       <div id="validator-list"></div>
       <button id="validate">Validate</button>
       <button id="submit" style="display: none;">Submit</button>
@@ -58,15 +58,33 @@ class JsonValidator extends HTMLElement {
     container.innerHTML = Object.entries(grouped).map(([folder, items]) => {
       return `
         <div class="folder">${folder.replaceAll("_", " ")}</div>
-        ${items.map(v => `
-          <div class="file">
-            <label>
-              <input type="checkbox" value="${v.url}">
-              ${v.description ? v.description : v.name.split('/').slice(1).join('/')}
-              <a href="${v.url}" target="_blank">[View]</a>
-            </label>
-          </div>
-        `).join('')}
+        ${items.map(v => {
+          // Determine the label
+          let labelText = v.description 
+            ? v.description 
+            : v.name.split('/').slice(1).join('/');
+          
+          // Check if there are any options (if object is not empty)
+          const hasOptions = v.options && Object.keys(v.options).length > 0;
+          
+          // Render the input field only if options are provided
+          return `
+            <div class="file">
+              <label>
+                <input type="checkbox" value="${v.url}">
+                ${labelText}
+                <a href="${v.url}" target="_blank">[View]</a>
+              </label>
+              ${hasOptions ? `
+              <br>
+              <label>
+                Options:
+                <input type="text" class="validator-options" data-url="${v.url}" value='${JSON.stringify(v.options)}'>
+              </label>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
       `;
     }).join('');
   }
@@ -137,6 +155,9 @@ class JsonValidator extends HTMLElement {
                 const frontmatter = match[1];const parsed = yaml.load(frontmatter);
                 if (parsed?.description) {
                   v.description = parsed.description.trim();
+                }
+                if (parsed?.options) {
+                  v.options = parsed.options;
                 }
               }
             } catch (e) {

@@ -3,6 +3,9 @@
 name: Quantity / Size Check Validator
 description: Checks that the dataset has enough dialogs for meaningful training.
 tags: [quantity, size, gate6]
+options:
+  min_samples: 50
+  min_turns: 2
 ---
 """
 
