@@ -47,7 +47,7 @@
         },
         {
             "messages": [
-                { "role": "assistant", "content": "I hope everything is wonderful. Missmatched lang!" },
+                { "role": "assistant", "content": "Ciao, come stai oggi? I hope you're well. Missmatched lang!" },
                 { "role": "user", "content": "Bonjour, comment ça va ?" }
             ]
         }
