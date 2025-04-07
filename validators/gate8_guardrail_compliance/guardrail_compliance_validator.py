@@ -15,6 +15,17 @@ try:
 except ImportError:
     profanity = None
 
+import sys
+import types
+
+if "srsly" not in sys.modules:
+    dummy_srsly = types.ModuleType("srsly")
+    dummy_srsly.__version__ = "0.0.0"
+    # Define any functions that scrubadub might call
+    dummy_srsly.load = lambda *args, **kwargs: None
+    dummy_srsly.save = lambda *args, **kwargs: None
+    sys.modules["srsly"] = dummy_srsly
+    
 import scrubadub
 # try:
 #     import scrubadub

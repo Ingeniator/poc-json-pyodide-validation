@@ -21,8 +21,10 @@ SUPPORTED_LANGUAGES = {
 }
 
 class LanguageConsistencyValidator(BaseValidator):
+
     def detect_lang(text: str) -> str:
     """Return detected language for text, but if text is very short, return 'unknown'."""
+    
     t = text.strip()
     if len(t) < self.options.get("length_threshold", 20):  # if too short, detection is unreliable
         return "unknown"
