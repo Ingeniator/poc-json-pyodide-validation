@@ -205,7 +205,6 @@ class JsonValidator extends HTMLElement {
     for (const url of selectedValidators) {
       try {
         const code = await fetch(url + `?t=${Date.now()}`).then(res => res.text()); // disable cache
-        console.log("🔍 Loaded", url, "\n---\n" + code + "\n---");
 
         if (!this.loadedValidators.has(url)) {
           // 🧹 Clear previous classes BEFORE loading new one
@@ -267,15 +266,30 @@ class JsonValidator extends HTMLElement {
         });
       }
     }
-    const formatted = results.map(r =>
-      `🔍 ${r.validator}:\n${typeof r.result === 'string' ? r.result : JSON.stringify(r.result, null, 2)}`
-    ).join('\n\n');
-
-    this.output.textContent = formatted;
-
-    // ✅ Show submit button only if all validations passed
+    const formatted = results.map(r => {
+      let resText = (typeof r.result === 'string') 
+        ? r.result 
+        : JSON.stringify(r.result, null, 2);
+        
+      // Look for a Base64 PNG reference in the result text.
+      const pattern = /data:image\/png;base64,[A-Za-z0-9+/=]+/;
+      const match = resText.match(pattern);
+      if (match) {
+        const base64Str = match[0];
+        // Replace the Base64 string with an <img> tag.
+        resText = resText.replace(pattern, `<br><img src="${base64Str}" alt="Distribution Plot"><br>`);
+      }
+      
+      // Use <br> for line breaks
+      return `🔍 ${r.validator}:<br>${resText}`;
+    }).join('<br><br>');
+    
+    // Use innerHTML to render HTML tags (like <img>) in the output.
+    this.output.innerHTML = formatted;
+    
+    // Show submit button only if all validations passed
     this.submitBtn.style.display = allPassed ? 'inline-block' : 'none';
-
+    
     // Store the data to use for submission
     this.validatedData = data;
   }
