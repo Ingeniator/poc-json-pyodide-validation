@@ -81,7 +81,7 @@ class JsonValidator extends HTMLElement {
               ${hasOptions ? `
               <br>
               <label>
-                Options:
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Options:
                 <input type="text" class="validator-options" data-url="${v.url}" value='${JSON.stringify(v.options)}'>
               </label>
               ` : ''}

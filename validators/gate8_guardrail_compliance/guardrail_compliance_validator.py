@@ -15,10 +15,11 @@ try:
 except ImportError:
     profanity = None
 
-try:
-    import scrubadub
-except ImportError:
-    scrubadub = None
+import scrubadub
+# try:
+#     import scrubadub
+# except ImportError:
+#     scrubadub = None
 
 class GuardrailComplianceValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[str]:
