@@ -18,6 +18,7 @@
       "ChatStructureValidator": "pass",
       "DeduplicationValidator": "pass",
       "LinkAvailabilityValidator": "pass",
-      "LanguageConsistencyValidator": "pass"
+      "LanguageConsistencyValidator": "pass",
+      "DialogBalanceValidator": "fail"
     }
   }
