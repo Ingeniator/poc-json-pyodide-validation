@@ -206,20 +206,17 @@ class JsonValidator extends HTMLElement {
       try {
         const code = await fetch(url + `?t=${Date.now()}`).then(res => res.text()); // disable cache
 
-        if (!this.loadedValidators.has(url)) {
-          // 🧹 Clear previous classes BEFORE loading new one
-          await this.py.runPythonAsync(`
-            for name in list(globals()):
-                if name not in ('__name__', '__doc__', '__package__', '__loader__', '__spec__', '__annotations__'):
-                    del globals()[name]
-          `);
-        
-          await this.py.runPythonAsync(code);  // ✅ Now load only once the new validator
-          this.loadedValidators.add(url);      // ✅ Remember it
-        }
+        // Always clear globals for isolation
+        await this.py.runPythonAsync(`
+          for name in list(globals()):
+              if name not in ('__name__', '__doc__', '__package__', '__loader__', '__spec__', '__annotations__'):
+                  del globals()[name]
+        `);
+        await this.py.runPythonAsync(code);
 
         await this.py.runPythonAsync(`
                   import inspect
+                  import builtins
                   from validators.base_validator import BaseValidator
 
                   for name, obj in list(globals().items()):
@@ -228,7 +225,7 @@ class JsonValidator extends HTMLElement {
                         and issubclass(obj, BaseValidator)
                         and obj is not BaseValidator
                       ):
-                        __current_validator__ = obj()
+                        builtins.__current_validator__ = obj()
                         break
                   `);
         this.py.globals.set("input_data", data);
@@ -237,15 +234,17 @@ class JsonValidator extends HTMLElement {
                         import traceback
                         import asyncio
                         import json
+                        import builtins
                         async def _run_validate():
                           try:
                               global output_result, output_result_json
-                              output_result = await __current_validator__.validate(input_data)
+                              v = __import__('builtins').__current_validator__
+                              output_result = await v.validate(input_data)
                           except Exception as e:
                               output_result = {
                                   "status": "fail",
                                   "errors": traceback.format_exc(),
-                                  "validator": __current_validator__.__class__.__name__
+                                  "validator": v.__class__.__name__
                               }
                           output_result_json = json.dumps(output_result)
                         await _run_validate()
