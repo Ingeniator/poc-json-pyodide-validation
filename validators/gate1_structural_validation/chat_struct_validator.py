@@ -3,7 +3,7 @@
 id: chat_structure
 name: Chat Structure Validator
 description: Checks message roles and order in a chat-style dataset.
-tags: [structure, pydantic, schema]
+tags: [structure, pydantic, schema, gate1]
 ---
 """
 

@@ -2,7 +2,7 @@
 ---
 name: Deduplication Validator
 description: Detects duplicate chat samples by comparing full message arrays.
-tags: [decontamination, deduplication]
+tags: [decontamination, deduplication, gate2]
 ---
 """
 
