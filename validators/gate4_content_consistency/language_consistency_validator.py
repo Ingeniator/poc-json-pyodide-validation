@@ -20,7 +20,8 @@ SUPPORTED_LANGUAGES = {
     "en", "zh-cn", "es", "hi", "ar", "bn", "pt", "ru", "ja", "de"
 }
 
-def detect_lang(text: str) -> str:
+class LanguageConsistencyValidator(BaseValidator):
+    def detect_lang(text: str) -> str:
     """Return detected language for text, but if text is very short, return 'unknown'."""
     t = text.strip()
     if len(t) < self.options.get("length_threshold", 20):  # if too short, detection is unreliable
@@ -30,7 +31,6 @@ def detect_lang(text: str) -> str:
     except Exception:
         return "unknown"
 
-class LanguageConsistencyValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[str]:
         errors = []
 
