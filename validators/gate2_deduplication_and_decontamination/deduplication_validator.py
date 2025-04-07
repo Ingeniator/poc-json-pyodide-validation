@@ -8,7 +8,6 @@ tags: [decontamination, deduplication, gate2]
 
 from validators.base_validator import BaseValidator
 import json
-import asyncio
 
 class DeduplicationValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[str]:

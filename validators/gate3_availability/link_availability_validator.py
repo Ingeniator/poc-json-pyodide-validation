@@ -8,7 +8,6 @@ tags: [availability, links, gate3]
 
 from validators.base_validator import BaseValidator
 import re
-import asyncio
 import js
 
 URL_PATTERN = re.compile(r"https?://[^\s]+")

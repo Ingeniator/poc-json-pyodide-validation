@@ -22,23 +22,22 @@ SUPPORTED_LANGUAGES = {
 
 class LanguageConsistencyValidator(BaseValidator):
 
-    def detect_lang(text: str) -> str:
-    """Return detected language for text, but if text is very short, return 'unknown'."""
-    
-    t = text.strip()
-    if len(t) < self.options.get("length_threshold", 20):  # if too short, detection is unreliable
-        return "unknown"
-    try:
-        return detect(t)
-    except Exception:
-        return "unknown"
+    def detect_lang(self, text: str) -> str:
+        """Return detected language for text, but if text is very short, return 'unknown'."""
+
+        t = text.strip()
+        if len(t) < self.options.get("length_threshold", 20):  # if too short, detection is unreliable
+            return "unknown"
+        try:
+            return detect(t)
+        except Exception:
+            return "unknown"
 
     async def _validate(self, data: list[dict]) -> list[str]:
         errors = []
 
         # Optionally, use a global expected language (if set)
         try:
-            import builtins
             expected_lang = self.options.get("expected_lang", None)
         except Exception:
             expected_lang = None
@@ -56,10 +55,9 @@ class LanguageConsistencyValidator(BaseValidator):
                 # Detect languages and store a snippet for verbose output
                 detected = []
                 for text in contents:
-                    lang = detect_lang(text) if text.strip() else "unknown"
+                    lang = self.detect_lang(text) if text.strip() else "unknown"
                     snippet = text.strip()[:30] + ("..." if len(text.strip()) > 30 else "")
                     detected.append((lang, snippet))
-                langs = [lang for lang, _ in detected]
 
                 # Report unsupported languages (only if detected language is not 'unknown')
                 for lang, snippet in detected:

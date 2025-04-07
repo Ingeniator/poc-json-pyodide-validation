@@ -10,7 +10,6 @@ tags: [structure, pydantic, schema, gate1]
 from pydantic import BaseModel, ValidationError, validator
 from typing import Literal
 from validators.base_validator import BaseValidator
-import asyncio
 
 class Message(BaseModel):
     role: Literal["user", "assistant", "system"]
