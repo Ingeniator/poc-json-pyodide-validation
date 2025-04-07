@@ -9,7 +9,7 @@
         },
         {
             "messages": [
-                { "role": "user", "content": "Hello, how are you doing today? I hope everything is wonderful." },
+                { "role": "user", "content": "Hello, how are you doing today? I hope everything is Hh." },
                 { "role": "assistant", "content": "Hi there! I hope everything is wonderful." }
             ]
         }

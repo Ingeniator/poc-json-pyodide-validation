@@ -7,7 +7,7 @@ tags: [structure, pydantic, schema, gate1]
 ---
 """
 
-from pydantic import BaseModel, validator, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 from typing import Literal
 from validators.base_validator import BaseValidator
 import asyncio
