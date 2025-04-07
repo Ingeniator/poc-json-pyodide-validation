@@ -12,7 +12,7 @@ options:
 from validators.base_validator import BaseValidator
 
 class QuantitySizeValidator(BaseValidator):
-    def _validate(self, data: list[dict]) -> list[str]:
+    await def _validate(self, data: list[dict]) -> list[str]:
         errors = []
         # Minimum number of dialogs required for training; default is 50.
         min_samples = self.options.get("min_samples", 50)

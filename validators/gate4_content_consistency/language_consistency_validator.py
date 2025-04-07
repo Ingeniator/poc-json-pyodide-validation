@@ -3,6 +3,9 @@
 name: Language & Encoding Consistency Validator
 description: Checks that request and response messages are in the same, valid language.
 tags: [language, encoding, gate4]
+options:
+  expected_lang: en
+  length_threshold: 20
 ---
 """
 
@@ -20,7 +23,7 @@ SUPPORTED_LANGUAGES = {
 def detect_lang(text: str) -> str:
     """Return detected language for text, but if text is very short, return 'unknown'."""
     t = text.strip()
-    if len(t) < 20:  # if too short, detection is unreliable
+    if len(t) < self.options.get("length_threshold", 20):  # if too short, detection is unreliable
         return "unknown"
     try:
         return detect(t)
@@ -34,7 +37,7 @@ class LanguageConsistencyValidator(BaseValidator):
         # Optionally, use a global expected language (if set)
         try:
             import builtins
-            expected_lang = getattr(builtins, "global_expected_lang", None)
+            expected_lang = self.options.get("expected_lang", None)
         except Exception:
             expected_lang = None
 

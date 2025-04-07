@@ -35,6 +35,9 @@ class JsonValidator extends HTMLElement {
           margin-top: 10px;
           margin-right: 10px;
         }
+        input.validator-options {
+          width: 300px;
+        }
       </style>
       <textarea placeholder="Paste JSON here..."></textarea>
       <h2>Available Validators:</h2>
@@ -225,6 +228,18 @@ class JsonValidator extends HTMLElement {
 
     for (const url of selectedValidators) {
       try {
+
+        // Get the options input for this validator (using its data-url attribute)
+        const optionsInput = this.shadowRoot.querySelector(`input.validator-options[data-url="${url}"]`);
+        let options = {};
+        if (optionsInput) {
+          try {
+            options = JSON.parse(optionsInput.value);
+          } catch (e) {
+            console.warn("Invalid JSON in options field, using empty object.");
+          }
+        }
+
         const code = await fetch(url + `?t=${Date.now()}`).then(res => res.text()); // disable cache
 
         // Always clear globals for isolation
@@ -238,15 +253,18 @@ class JsonValidator extends HTMLElement {
         await this.py.runPythonAsync(`
                   import inspect
                   import builtins
+                  import json
                   from validators.base_validator import BaseValidator
 
+                  # Read options from the injected JSON string
+                  my_options = json.loads('${JSON.stringify(options)}')
                   for name, obj in list(globals().items()):
                     if (
                         inspect.isclass(obj)
                         and issubclass(obj, BaseValidator)
                         and obj is not BaseValidator
                       ):
-                        builtins.__current_validator__ = obj()
+                        builtins.__current_validator__ = obj(options=my_options)
                         break
                   `);
         this.py.globals.set("input_data", data);
