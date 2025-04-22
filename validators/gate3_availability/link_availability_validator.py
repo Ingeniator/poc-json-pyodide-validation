@@ -6,18 +6,19 @@ tags: [availability, links, gate3]
 ---
 """
 
-from validators.base_validator import BaseValidator
+from validators.base_validator import BaseValidator, ValidationErrorDetail
 import re
 import js
 
 URL_PATTERN = re.compile(r"https?://[^\s]+")
 
 class LinkAvailabilityValidator(BaseValidator):
-    async def _validate(self, data: list[dict]) -> list[str]:
-        errors = []
+    async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
+        errors: list[ValidationErrorDetail] = []
 
         for i, sample in enumerate(data):
-            for j, msg in enumerate(sample.get("messages", [])):
+            messages = sample.get("messages", [])
+            for j, msg in enumerate(messages):
                 content = msg.get("content", "")
                 urls = URL_PATTERN.findall(content)
 
@@ -25,8 +26,18 @@ class LinkAvailabilityValidator(BaseValidator):
                     try:
                         resp = await js.fetch(url)
                         if not resp.ok:
-                            errors.append(f"Sample {i} Message {j}: URL {url} returned status {resp.status}")
+                            errors.append(ValidationErrorDetail(
+                                index=i,
+                                field=f"messages[{j}].content",
+                                error=f"URL {url} returned status {resp.status}",
+                                code="unavailable_url"
+                            ))
                     except Exception as e:
-                        errors.append(f"Sample {i} Message {j}: URL {url} fetch failed: {e}")
+                        errors.append(ValidationErrorDetail(
+                            index=i,
+                            field=f"messages[{j}].content",
+                            error=f"URL {url} fetch failed: {str(e)}",
+                            code="fetch_error"
+                        ))
 
         return errors

@@ -6,7 +6,7 @@ tags: [guardrails, toxicity, pii, safety, gate8]
 ---
 """
 
-from validators.base_validator import BaseValidator
+from validators.base_validator import BaseValidator, ValidationErrorDetail
 import re
 
 # Attempt to import better_profanity and scrubadub
@@ -33,40 +33,56 @@ import scrubadub
 #     scrubadub = None
 
 class GuardrailComplianceValidator(BaseValidator):
-    async def _validate(self, data: list[dict]) -> list[str]:
-        errors = []
+    async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
+        errors: list[ValidationErrorDetail] = []
         for i, item in enumerate(data):
             messages = item.get("messages", [])
             for j, msg in enumerate(messages):
                 content = msg.get("content", "")
-                
+                snippet = content[:30] + ("..." if len(content) > 30 else "")
+                field_path = f"messages[{j}].content"
                 # Toxicity check using better-profanity
                 if profanity:
                     if profanity.contains_profanity(content):
-                        errors.append(
-                            f"Sample {i} Message {j}: Toxic content detected in text: \"{content[:30]}...\""
-                        )
+                        errors.append(ValidationErrorDetail(
+                            index=i,
+                            field=field_path,
+                            error=f"Toxic content detected: \"{snippet}\"",
+                            code="toxic_content"
+                        ))
                 else:
-                    errors.append(
-                        f"Sample {i} Message {j}: better_profanity not installed."
-                    )
+                    errors.append(ValidationErrorDetail(
+                        index=i,
+                        field=field_path,
+                        error="Profanity check failed: better_profanity not installed.",
+                        code="missing_dependency"
+                    ))
                 
                 # PII detection using scrubadub
                 if scrubadub:
                     # scrubadub.clean() returns a cleaned version of the text.
                     cleaned = scrubadub.clean(content)
                     if cleaned != content:
-                        errors.append(
-                            f"Sample {i} Message {j}: Potential PII detected. Cleaned version: \"{cleaned[:30]}...\""
-                        )
+                        errors.append(ValidationErrorDetail(
+                            index=i,
+                            field=field_path,
+                            error=f"Potential PII detected. Cleaned version: \"{cleaned[:30]}...\"",
+                            code="pii_detected"
+                        ))
                 else:
-                    errors.append(
-                        f"Sample {i} Message {j}: scrubadub not installed."
-                    )
+                    errors.append(ValidationErrorDetail(
+                        index=i,
+                        field=field_path,
+                        error="PII check failed: scrubadub not installed.",
+                        code="missing_dependency"
+                    ))
                 
                 # Example check: basic formatting issue (e.g., excessive markdown)
                 if re.search(r"([*_]{3,})", content):
-                    errors.append(
-                        f"Sample {i} Message {j}: Formatting issue detected (excessive markdown)."
-                    )
+                    errors.append(ValidationErrorDetail(
+                        index=i,
+                        field=field_path,
+                        error="Formatting issue: excessive markdown characters.",
+                        code="formatting_issue"
+                    ))
         return errors

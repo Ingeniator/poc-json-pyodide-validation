@@ -9,7 +9,7 @@ options:
 ---
 """
 
-from validators.base_validator import BaseValidator
+from validators.base_validator import BaseValidator, ValidationErrorDetail
 from langdetect import detect, DetectorFactory
 import re
 
@@ -33,8 +33,8 @@ class LanguageConsistencyValidator(BaseValidator):
         except Exception:
             return "unknown"
 
-    async def _validate(self, data: list[dict]) -> list[str]:
-        errors = []
+    async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
+        errors: list[ValidationErrorDetail] = []
 
         # Optionally, use a global expected language (if set)
         try:
@@ -60,35 +60,58 @@ class LanguageConsistencyValidator(BaseValidator):
                     detected.append((lang, snippet))
 
                 # Report unsupported languages (only if detected language is not 'unknown')
-                for lang, snippet in detected:
+                for j, (lang, snippet) in enumerate(detected):
                     if lang not in SUPPORTED_LANGUAGES and lang != "unknown":
-                        errors.append(f"Sample {i}: unsupported language '{lang}' detected in text: \"{snippet}\"")
+                        errors.append(ValidationErrorDetail(
+                            index=i,
+                            field=f"messages[{j}].content",
+                            error=f"Unsupported language '{lang}' detected: \"{snippet}\"",
+                            code="unsupported_language"
+                        ))
 
                 # Compare first user and first assistant message languages with verbose examples
                 user_examples = [(lang, snippet) for (r, (lang, snippet)) in zip(roles, detected) if r == "user"]
                 assistant_examples = [(lang, snippet) for (r, (lang, snippet)) in zip(roles, detected) if r == "assistant"]
 
                 if user_examples and assistant_examples and user_examples[0][0] != assistant_examples[0][0]:
-                    errors.append(
-                        f"Sample {i}: mismatch - first user message detected as '{user_examples[0][0]}' "
-                        f"(e.g., \"{user_examples[0][1]}\") vs. first assistant message detected as '{assistant_examples[0][0]}' "
-                        f"(e.g., \"{assistant_examples[0][1]}\")"
-                    )
+                    errors.append(ValidationErrorDetail(
+                        index=i,
+                        error=(
+                            f"Mismatch between user and assistant message languages: "
+                            f"user='{user_examples[0][0]}' (e.g., \"{user_examples[0][1]}\") vs. "
+                            f"assistant='{assistant_examples[0][0]}' (e.g., \"{assistant_examples[0][1]}\")"
+                        ),
+                        code="language_mismatch"
+                    ))
 
                 # If expected language is defined, check each detected language (ignoring 'unknown')
                 if expected_lang:
                     for lang, snippet in detected:
                         if lang != expected_lang and lang != "unknown":
-                            errors.append(
-                                f"Sample {i}: language mismatch - expected '{expected_lang}', but detected '{lang}' in text: \"{snippet}\""
-                            )
+                            errors.append(ValidationErrorDetail(
+                                index=i,
+                                field=f"messages[{j}].content",
+                                error=(
+                                    f"Language mismatch: expected '{expected_lang}', detected '{lang}' in \"{snippet}\""
+                                ),
+                                code="expected_language_mismatch"
+                            ))
 
                 # Check for garbled characters (e.g., Unicode replacement character)
                 for j, content in enumerate(contents):
                     if re.search(r"[�\uFFFD]", content):
-                        errors.append(f"Sample {i} Message {j}: contains garbled/invalid characters")
+                        errors.append(ValidationErrorDetail(
+                            index=i,
+                            field=f"messages[{j}].content",
+                            error="Contains garbled or invalid characters (�)",
+                            code="garbled_characters"
+                        ))
 
             except Exception as e:
-                errors.append(f"Sample {i}: Language detection error: {str(e)}")
+                errors.append(ValidationErrorDetail(
+                    index=i,
+                    error=f"Language detection error: {str(e)}",
+                    code="detection_exception"
+                ))
 
         return errors

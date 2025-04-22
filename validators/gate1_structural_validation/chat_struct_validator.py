@@ -9,7 +9,7 @@ tags: [structure, pydantic, schema, gate1]
 
 from pydantic import BaseModel, ValidationError, validator
 from typing import Literal
-from validators.base_validator import BaseValidator
+from validators.base_validator import BaseValidator, ValidationErrorDetail
 
 class Message(BaseModel):
     role: Literal["user", "assistant", "system"]
@@ -33,20 +33,18 @@ class ChatSample(BaseModel):
 
 class ChatStructureValidator(BaseValidator):
 
-    async def _validate(self, data: list[dict]) -> list[str]:
-        try:
-            errors = []
-            if not data:
-                errors.append("Empty array detected")
-                return errors
-            for i, item in enumerate(data):
-                try:
-                    ChatSample(**item)
-                except ValidationError as e:
-                    errors.append({
-                        "index": i,
-                        "error": str(e)
-                    })
-            return errors
-        except ValidationError as e:
-            return [ str(e) ]
+    async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]: 
+        errors: list[ValidationErrorDetail] = []
+        if not data:
+            return [ValidationErrorDetail(error="Empty array detected")]
+        for i, item in enumerate(data):
+            try:
+                ChatSample(**item)
+            except ValidationError as e:
+                errors.append(
+                    ValidationErrorDetail(
+                    index=i,
+                    error=str(e),
+                    code="schema_validation"
+                ))
+        return errors

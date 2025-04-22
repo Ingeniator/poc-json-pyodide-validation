@@ -8,10 +8,18 @@ tags: [abstract]
 
 from abc import ABC, abstractmethod
 from typing import Any
+from pydantic import BaseModel
+
 try:
     from pyodide.ffi import JsProxy
 except ImportError:
     JsProxy = None  # We're not in Pyodide
+
+class ValidationErrorDetail(BaseModel):
+    error: str
+    index: int | None = None  # None for general errors not tied to an item
+    field: str |  None = None  # Optional: which field caused the error
+    code: str | None = None   # Optional: machine-readable error code
 
 class BaseValidator(ABC):
 
@@ -31,7 +39,7 @@ class BaseValidator(ABC):
             if errors:
                 return {
                     "status": "fail",
-                    "errors": errors,
+                    "errors": [e.dict() for e in errors],
                     "validator": self.__class__.__name__
                 }
             return {
@@ -46,7 +54,7 @@ class BaseValidator(ABC):
                 }
 
     @abstractmethod
-    async def _validate(self, data: list[dict[str, Any]]) -> list[str]:
+    async def _validate(self, data: list[dict[str, Any]]) -> list[ValidationErrorDetail]:
         """
         Implement this in subclasses. Must return a error array if any
         """
