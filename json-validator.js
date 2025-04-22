@@ -93,6 +93,14 @@ class JsonValidator extends HTMLElement {
     }).join('');
   }
 
+  async nextIdle() {
+    return new Promise(resolve =>
+      'requestIdleCallback' in window
+        ? requestIdleCallback(resolve)
+        : setTimeout(resolve, 0)
+    );
+  }
+
   async connectedCallback() {
 
     const validatorList = this.shadowRoot.querySelector('#validator-list');
@@ -107,13 +115,6 @@ class JsonValidator extends HTMLElement {
 
     initPyodide();  // kick off background loading without await
 
-    function nextIdle() {
-      return new Promise(resolve =>
-        'requestIdleCallback' in window
-          ? requestIdleCallback(resolve)
-          : setTimeout(resolve, 0)
-      );
-    }
 
     const githubSpec = this.getAttribute('validator-source-github');
     if (githubSpec) {
@@ -121,7 +122,7 @@ class JsonValidator extends HTMLElement {
       if (match) {
         const [_, repo, branch, folder] = match;
         validatorList.innerHTML = "📦 Fetching validator list...";
-        await nextIdle();
+        await this.nextIdle();
         const apiUrl = `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`;
         try {
           const res = await fetch(apiUrl);
@@ -250,7 +251,7 @@ class JsonValidator extends HTMLElement {
         const label = validatorMeta?.description || url;
     
         this.progressOutput.textContent = `Running: ${label}…`;
-        await nextIdle();  // lets browser update UI
+        await this.nextIdle();  // lets browser update UI
         // Get the options input for this validator (using its data-url attribute)
         const optionsInput = this.shadowRoot.querySelector(`input.validator-options[data-url="${url}"]`);
         let options = {};
