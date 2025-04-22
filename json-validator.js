@@ -186,7 +186,7 @@ class JsonValidator extends HTMLElement {
 
   onValidationProgress(update) {
     console.log(`[${update.validator}] ${update.current} / ${update.total}`);
-    document.getElementById("progress").textContent = 
+    this.shadowRoot.querySelector("#progress").textContent.getElementById("progress").textContent = 
       `Running: ${update.validator} — ${update.current} / ${update.total}`;
   }
 
