@@ -185,7 +185,6 @@ class JsonValidator extends HTMLElement {
   }
 
   onValidationProgress(update) {
-    console.log(`[${update.validator}] ${update.current} / ${update.total}`);
     const el = this.shadowRoot.querySelector("#progress");
     if (!el) {
       console.warn("Progress element not found in shadowRoot");
@@ -194,8 +193,10 @@ class JsonValidator extends HTMLElement {
 
     if (update.stage) {
       el.textContent = `Stage: ${update.validator} — ${update.stage}`;
-    } else {
+    } else if ("current" in update && "total" in update) {
       el.textContent = `Running: ${update.validator} — ${update.current} / ${update.total}`;
+    } else {
+      console.log(`[${update.validator}] unknown progress update:`, update);
     }
   }
 
