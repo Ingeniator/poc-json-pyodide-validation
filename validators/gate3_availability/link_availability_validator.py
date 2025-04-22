@@ -59,7 +59,7 @@ class LinkAvailabilityValidator(BaseValidator):
                 urls = URL_PATTERN.findall(content)
 
                 for url in urls:
-
+                    try:
                         response = await js.safeFetch(url)
                         result = response.to_py() if hasattr(response, "to_py") else response
 
