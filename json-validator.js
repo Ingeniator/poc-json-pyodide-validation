@@ -186,8 +186,17 @@ class JsonValidator extends HTMLElement {
 
   onValidationProgress(update) {
     console.log(`[${update.validator}] ${update.current} / ${update.total}`);
-    this.shadowRoot.querySelector("#progress").textContent.getElementById("progress").textContent = 
-      `Running: ${update.validator} — ${update.current} / ${update.total}`;
+    const el = this.shadowRoot.querySelector("#progress");
+    if (!el) {
+      console.warn("Progress element not found in shadowRoot");
+      return;
+    }
+
+    if (update.stage) {
+      el.textContent = `Stage: ${update.validator} — ${update.stage}`;
+    } else {
+      el.textContent = `Running: ${update.validator} — ${update.current} / ${update.total}`;
+    }
   }
 
   async runValidation() {
@@ -257,7 +266,9 @@ class JsonValidator extends HTMLElement {
         `);
         await this.py.runPythonAsync(code);
 
+        // this.py.globals.set("progress_callback", this.onValidationProgress.bind(this));
         this.py.globals.set("progress_callback", (update) => {
+          console.log("Received update from Python:", update);
           this.onValidationProgress(update);
         });
         await this.py.runPythonAsync(`
