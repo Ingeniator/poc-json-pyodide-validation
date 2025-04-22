@@ -28,9 +28,6 @@ URL_PATTERN = re.compile(r"https?://[^\s]+")
 class LinkAvailabilityValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
-
-        print("js:", js)
-        print("PYODIDE_AVAILABLE:", PYODIDE_AVAILABLE)
         
         try:
             import js
