@@ -268,8 +268,9 @@ class JsonValidator extends HTMLElement {
 
         // this.py.globals.set("progress_callback", this.onValidationProgress.bind(this));
         this.py.globals.set("progress_callback", (update) => {
-          console.log("Received update from Python:", update);
-          this.onValidationProgress(update);
+          const safeUpdate = update.toJs ? update.toJs() : update; // Convert PyProxy → JS object
+          console.log("Received update from Python:", safeUpdate);
+          this.onValidationProgress(safeUpdate);
         });
         await this.py.runPythonAsync(`
                   import inspect
