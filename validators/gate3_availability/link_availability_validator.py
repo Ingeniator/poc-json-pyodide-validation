@@ -29,25 +29,37 @@ class LinkAvailabilityValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
 
-        if not PYODIDE_AVAILABLE or not js:
-            raise RuntimeError("LinkAvailabilityValidator must be run inside Pyodide with js.safeFetch defined")
+        print("js:", js)
+        print("PYODIDE_AVAILABLE:", PYODIDE_AVAILABLE)
+        
+        try:
+            import js
+            from pyodide.ffi import JsException, eval_js
+        except ImportError:
+            raise RuntimeError("This validator requires Pyodide runtime.")
 
+        
 
-        if PYODIDE_AVAILABLE and not hasattr(js, "safeFetch"):
-            eval_js("""
-                globalThis.safeFetch = async function(url) {
-                    try {
-                        const res = await fetch(url);
-                        return { ok: res.ok, status: res.status };
-                    } catch (err) {
-                        return {
-                            ok: false,
-                            status: 0,
-                            error: err?.message || "network error"
-                        };
-                    }
-                };
-            """)
+        if PYODIDE_AVAILABLE and js:
+            try:
+                _ = js.safeFetch
+            except Exception:
+                eval_js("""
+                    globalThis.safeFetch = async function(url) {
+                        try {
+                            const res = await fetch(url);
+                            return { ok: res.ok, status: res.status };
+                        } catch (err) {
+                            return {
+                                ok: false,
+                                status: 0,
+                                error: err?.message || "network error"
+                            };
+                        }
+                    };
+                """)
+        else:
+            raise RuntimeError("LinkAvailabilityValidator must be run inside Pyodide with js.safeFetch available")
 
         total = sum(len(item.get("messages", [])) for item in data)
         current = 0
