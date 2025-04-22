@@ -10,7 +10,7 @@ from validators.base_validator import BaseValidator, ValidationErrorDetail
 import re
 import js
 try:
-    from pyodide.ffi import JsException
+    from pyodide.ffi import JsException, create_proxy
     PYODIDE_AVAILABLE = True
 except ImportError:
     class JsException(Exception):
