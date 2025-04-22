@@ -184,7 +184,7 @@ class JsonValidator extends HTMLElement {
     }
   }
 
-  async onValidationProgress(update) {
+  onValidationProgress(update) {
     console.log(`[${update.validator}] ${update.current} / ${update.total}`);
     document.getElementById("progress").textContent = 
       `Running: ${update.validator} — ${update.current} / ${update.total}`;
@@ -257,7 +257,9 @@ class JsonValidator extends HTMLElement {
         `);
         await this.py.runPythonAsync(code);
 
-        this.py.globals.set("progress_callback", this.onValidationProgress);
+        this.py.globals.set("progress_callback", (update) => {
+          this.onValidationProgress(update);
+        });
         await this.py.runPythonAsync(`
                   import inspect
                   import builtins

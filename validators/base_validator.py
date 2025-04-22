@@ -37,7 +37,9 @@ class BaseValidator(ABC):
         else:
             data = js_data
         try:
+            self.report_stage("starting")
             errors = await self._validate(data)
+            self.report_stage("complete")
             if errors:
                 return {
                     "status": "fail",
