@@ -5,11 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "js>=1.0",
     "langdetect>=1.0.9",
     "matplotlib>=3.10.1",
     "pandas>=2.2.3",
     "pydantic>=2.11.2",
+    "requests>=2.32.3",
     "scrubadub>=2.0.1",
 ]
 

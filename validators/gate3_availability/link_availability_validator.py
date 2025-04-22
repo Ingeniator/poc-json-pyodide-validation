@@ -12,36 +12,36 @@ from validators.base_validator import BaseValidator, ValidationErrorDetail
 
 URL_PATTERN = re.compile(r"https?://[^\s]+")
 
+try:
+    import js
+except ImportError:
+    js = None
+
+try:
+    from pyodide.ffi import JsException
+except ImportError:
+    JsException = Exception
 
 class LinkAvailabilityValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
-
-        try:
-            import js
-            from pyodide.ffi import JsException, eval_js
-        except ImportError:
-            raise RuntimeError("This validator requires Pyodide runtime.")
-
-        try:
-            _ = js.safeFetch
-        except Exception:
-            eval_js("""
-                globalThis.safeFetch = async function(url) {
-                    try {
-                        const res = await fetch(url);
-                        return { ok: res.ok, status: res.status };
-                    } catch (err) {
-                        return {
-                            ok: false,
-                            status: 0,
-                            error: err?.message || "network error"
-                        };
-                    }
-                };
-            """)
        
         total = sum(len(item.get("messages", [])) for item in data)
+
+        # Check if js.safeFetch exists; fallback to js.fetch
+        if js:
+            fetch_func = getattr(js, "safeFetch", js.window.fetch)
+        else:
+            # fallback for local testing (requests, aiohttp, etc.)
+            import requests
+            def fetch_func(url):
+                resp = requests.get(url)
+                return {
+                    "ok": resp.ok,
+                    "status": resp.status_code,
+                    "text": resp.text
+                }
+
         current = 0
 
         for i, sample in enumerate(data):
@@ -52,8 +52,11 @@ class LinkAvailabilityValidator(BaseValidator):
 
                 for url in urls:
                     try:
-                        response = await js.safeFetch(url)
-                        result = response.to_py() if hasattr(response, "to_py") else response
+                        if js:
+                            response = await fetch_func(url)
+                            result = response.to_py() if hasattr(response, "to_py") else response
+                        else:
+                            result = fetch_func(url)
 
                         if not result.get("ok", False):
                             errors.append(ValidationErrorDetail(
