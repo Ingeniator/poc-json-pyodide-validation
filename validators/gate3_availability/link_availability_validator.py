@@ -29,7 +29,7 @@ class LinkAvailabilityValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
 
-        if not PYODIDE_AVAILABLE or not js or not hasattr(js, "safeFetch"):
+        if not PYODIDE_AVAILABLE or not js:
             raise RuntimeError("LinkAvailabilityValidator must be run inside Pyodide with js.safeFetch defined")
 
 
