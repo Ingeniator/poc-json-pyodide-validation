@@ -9,18 +9,6 @@ tags: [availability, links, gate3]
 import re
 from validators.base_validator import BaseValidator, ValidationErrorDetail
 
-try:
-    import js
-except ImportError:
-    js = None  # for environments like pytest
-
-try:
-    from pyodide.ffi import JsException, eval_js
-    PYODIDE_AVAILABLE = True
-except ImportError:
-    class JsException(Exception):
-        pass
-    PYODIDE_AVAILABLE = False
 
 URL_PATTERN = re.compile(r"https?://[^\s]+")
 
@@ -28,36 +16,31 @@ URL_PATTERN = re.compile(r"https?://[^\s]+")
 class LinkAvailabilityValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
-        
+
         try:
             import js
             from pyodide.ffi import JsException, eval_js
         except ImportError:
             raise RuntimeError("This validator requires Pyodide runtime.")
 
-        
-
-        if PYODIDE_AVAILABLE and js:
-            try:
-                _ = js.safeFetch
-            except Exception:
-                eval_js("""
-                    globalThis.safeFetch = async function(url) {
-                        try {
-                            const res = await fetch(url);
-                            return { ok: res.ok, status: res.status };
-                        } catch (err) {
-                            return {
-                                ok: false,
-                                status: 0,
-                                error: err?.message || "network error"
-                            };
-                        }
-                    };
-                """)
-        else:
-            raise RuntimeError("LinkAvailabilityValidator must be run inside Pyodide with js.safeFetch available")
-
+        try:
+            _ = js.safeFetch
+        except Exception:
+            eval_js("""
+                globalThis.safeFetch = async function(url) {
+                    try {
+                        const res = await fetch(url);
+                        return { ok: res.ok, status: res.status };
+                    } catch (err) {
+                        return {
+                            ok: false,
+                            status: 0,
+                            error: err?.message || "network error"
+                        };
+                    }
+                };
+            """)
+       
         total = sum(len(item.get("messages", [])) for item in data)
         current = 0
 
