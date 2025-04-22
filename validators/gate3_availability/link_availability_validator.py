@@ -43,11 +43,11 @@ class LinkAvailabilityValidator(BaseValidator):
                         else:
                             resp = response
                         
-                        if not resp.ok:
+                        if not resp.get("ok", False):
                             errors.append(ValidationErrorDetail(
                                 index=i,
                                 field=f"messages[{j}].content",
-                                error=f"URL {url} returned status {resp.status}",
+                                error=f"URL {url} returned status {resp.get('status')}",
                                 code="unavailable_url"
                             ))
                     except JsException as e:
@@ -57,7 +57,7 @@ class LinkAvailabilityValidator(BaseValidator):
                             error=f"Fetch failed for {url}: {str(e)}",
                             code="fetch_error"
                         ))
-                    except BaseException as e:
+                    except Exception as e:
                         errors.append(ValidationErrorDetail(
                             index=i,
                             field=f"messages[{j}].content",
