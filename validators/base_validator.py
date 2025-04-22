@@ -9,6 +9,7 @@ tags: [abstract]
 from abc import ABC, abstractmethod
 from typing import Any
 from pydantic import BaseModel
+import time
 
 try:
     from pyodide.ffi import JsProxy
@@ -37,9 +38,10 @@ class BaseValidator(ABC):
         else:
             data = js_data
         try:
+            start = time.time()
             self.report_stage("starting")
             errors = await self._validate(data)
-            self.report_stage("complete")
+            self.report_stage(f"complete ({time.time() - start:.2f}s)")
             if errors:
                 return {
                     "status": "fail",

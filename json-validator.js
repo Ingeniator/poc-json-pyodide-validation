@@ -246,7 +246,11 @@ class JsonValidator extends HTMLElement {
 
     for (const url of selectedValidators) {
       try {
-
+        const validatorMeta = this.availableValidators.find(v => v.url === url);
+        const label = validatorMeta?.description || url;
+    
+        this.progressOutput.textContent = `Running: ${label}…`;
+        await nextIdle();  // lets browser update UI
         // Get the options input for this validator (using its data-url attribute)
         const optionsInput = this.shadowRoot.querySelector(`input.validator-options[data-url="${url}"]`);
         let options = {};
