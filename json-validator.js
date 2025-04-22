@@ -267,7 +267,7 @@ class JsonValidator extends HTMLElement {
                   from validators.base_validator import BaseValidator
 
                   # Read options from the injected JSON string
-                  my_options = json.loads('${JSON.stringify(JSON.stringify(options))}')
+                  my_options = json.loads('${JSON.stringify(options)}')
                   for name, obj in list(globals().items()):
                     if (
                         inspect.isclass(obj)
