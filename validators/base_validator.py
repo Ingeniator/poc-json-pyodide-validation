@@ -57,6 +57,16 @@ class BaseValidator(ABC):
                     "validator": self.__class__.__name__
                 }
 
+    def report_stage(self, stage_name: str):
+    if self.progress_callback:
+        try:
+            self.progress_callback({
+                "validator": self.__class__.__name__,
+                "stage": stage_name
+            })
+        except Exception:
+            pass
+
     def report_progress(self, current: int, total: int):
         if self.progress_callback:
             try:
