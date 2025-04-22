@@ -177,7 +177,7 @@ class JsonValidator extends HTMLElement {
             .filter(result => result.status === "fulfilled")
             .map(result => result.value);
 
-          this.availableValidators = validators;
+          this.availableValidators = enriched;
           this.renderHierarchicalValidators(validatorList, enriched);
         } catch (e) {
           validatorList.innerHTML = `<p style="color:red;">❌ Failed to fetch from GitHub: ${e}</p>`;
@@ -248,7 +248,7 @@ class JsonValidator extends HTMLElement {
     for (const url of selectedValidators) {
       try {
         const validatorMeta = this.availableValidators.find(v => v.url === url);
-        const label = validatorMeta?.description || url;
+        const label = validatorMeta?.description || validatorMeta?.name || url;
     
         this.progressOutput.textContent = `Running: ${label}…`;
         await this.nextIdle();  // lets browser update UI
@@ -323,12 +323,18 @@ class JsonValidator extends HTMLElement {
                           output_result_json = json.dumps(output_result)
                         await _run_validate()
                         `);
-        const result = JSON.parse(this.py.globals.get("output_result_json"));
+        const output = this.py.globals.get("output_result_json");
+        if (!output) throw new Error("No output from validator");
+        const result = JSON.parse(output);
         results.push({ validator: url.split('/').pop(), result });
 
         // ✅ Simple check: if result contains "fail" or "missing", assume it failed
         const resultStr = JSON.stringify(result).toLowerCase();
-        if (resultStr.includes('fail') || resultStr.includes('missing') || resultStr.includes('error')) {
+        if (
+          result.status === "fail" ||
+          resultStr.includes('"status":"fail"') ||
+          resultStr.includes('"errors":')  // sometimes helpful
+        ) {
           allPassed = false;
         }
       } catch (e) {
