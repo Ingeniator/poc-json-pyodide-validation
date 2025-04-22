@@ -6,11 +6,16 @@ tags: [availability, links, gate3]
 ---
 """
 
-from validators.base_validator import BaseValidator, ValidationErrorDetail
 import re
-import js
+from validators.base_validator import BaseValidator, ValidationErrorDetail
+
 try:
-    from pyodide.ffi import JsException, create_proxy
+    import js
+except ImportError:
+    js = None  # for environments like pytest
+
+try:
+    from pyodide.ffi import JsException, eval_js
     PYODIDE_AVAILABLE = True
 except ImportError:
     class JsException(Exception):
@@ -19,15 +24,30 @@ except ImportError:
 
 URL_PATTERN = re.compile(r"https?://[^\s]+")
 
-class LinkAvailabilityValidator(BaseValidator):
-    def __init__(self, options=None, progress_callback=None, fetch_func=None):
-        super().__init__(options, progress_callback)
-        self.fetch = fetch_func or (js.fetch if PYODIDE_AVAILABLE else None)
 
+class LinkAvailabilityValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
+
+        if PYODIDE_AVAILABLE and not hasattr(js, "safeFetch"):
+            eval_js("""
+                globalThis.safeFetch = async function(url) {
+                    try {
+                        const res = await fetch(url);
+                        return { ok: res.ok, status: res.status };
+                    } catch (err) {
+                        return {
+                            ok: false,
+                            status: 0,
+                            error: err?.message || "network error"
+                        };
+                    }
+                };
+            """)
+
         total = sum(len(item.get("messages", [])) for item in data)
         current = 0
+
         for i, sample in enumerate(data):
             messages = sample.get("messages", [])
             for j, msg in enumerate(messages):
@@ -36,34 +56,33 @@ class LinkAvailabilityValidator(BaseValidator):
 
                 for url in urls:
                     try:
-                        response_promise = self.fetch(url)
-                        response = await response_promise
-                        if hasattr(response, "to_py"):
-                            resp = response.to_py()
+                        if PYODIDE_AVAILABLE:
+                            response = await js.safeFetch(url)
                         else:
-                            resp = response
-                        
-                        if not resp.get("ok", False):
+                            response = await js.fetch(url)
+                        result = response.to_py() if hasattr(response, "to_py") else response
+
+                        if not result.get("ok", False):
                             errors.append(ValidationErrorDetail(
                                 index=i,
                                 field=f"messages[{j}].content",
-                                error=f"URL {url} returned status {resp.get('status')}",
+                                error=f"URL {url} returned status {result.get('status')} or error: {result.get('error', '')}",
                                 code="unavailable_url"
                             ))
                     except JsException as e:
                         errors.append(ValidationErrorDetail(
                             index=i,
                             field=f"messages[{j}].content",
-                            error=f"Fetch failed for {url}: {str(e)}",
+                            error=f"JS fetch failed for {url}: {str(e)}",
                             code="fetch_error"
                         ))
                     except Exception as e:
                         errors.append(ValidationErrorDetail(
                             index=i,
                             field=f"messages[{j}].content",
-                            error=f"URL {url} fetch failed: {str(e)}",
+                            error=f"Python exception while fetching {url}: {str(e)}",
                             code="fetch_error"
                         ))
-                current += 1
-                self.report_progress(current, total)
+            current += 1
+            self.report_progress(current, total)
         return errors
