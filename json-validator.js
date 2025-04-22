@@ -101,6 +101,7 @@ class JsonValidator extends HTMLElement {
     this.validateBtn = this.shadowRoot.querySelector('#validate');
     this.submitBtn = this.shadowRoot.querySelector('#submit');
     this.output = this.shadowRoot.querySelector('#output');
+    this.progressOutput = this.shadowRoot.querySelector("#progress");
     this.validateBtn.addEventListener('click', () => this.runValidation());
     this.submitBtn.addEventListener('click', () => this.postJson());
 
@@ -185,16 +186,15 @@ class JsonValidator extends HTMLElement {
   }
 
   onValidationProgress(update) {
-    const el = this.shadowRoot.querySelector("#progress");
-    if (!el) {
+    if (!this.progressOutput) {
       console.warn("Progress element not found in shadowRoot");
       return;
     }
 
     if (update.stage) {
-      el.textContent = `Stage: ${update.validator} — ${update.stage}`;
+      this.progressOutput.textContent = `Stage: ${update.validator} — ${update.stage}`;
     } else if ("current" in update && "total" in update) {
-      el.textContent = `Running: ${update.validator} — ${update.current} / ${update.total}`;
+      this.progressOutput.textContent = `Running: ${update.validator} — ${update.current} / ${update.total}`;
     } else {
       console.log(`[${update.validator}] unknown progress update:`, update);
     }
@@ -218,6 +218,7 @@ class JsonValidator extends HTMLElement {
       this._baseLoaded = true; // ✅ Prevents re-checking FS next time
     } 
 
+    this.progressOutput.style.display = "block";
     this.output.textContent = "🚀 Running validation...";
 
     const checkboxes = this.shadowRoot.querySelectorAll('#validator-list input[type=checkbox]');
@@ -353,6 +354,7 @@ class JsonValidator extends HTMLElement {
     
     // Use innerHTML to render HTML tags (like <img>) in the output.
     this.output.innerHTML = formatted;
+    this.progressOutput.style.display = "none";
     
     // Show submit button only if all validations passed
     this.submitBtn.style.display = allPassed ? 'inline-block' : 'none';
