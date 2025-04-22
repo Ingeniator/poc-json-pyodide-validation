@@ -35,6 +35,8 @@ import scrubadub
 class GuardrailComplianceValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
+        total = sum(len(item.get("messages", [])) for item in data)
+        current = 0
         for i, item in enumerate(data):
             messages = item.get("messages", [])
             for j, msg in enumerate(messages):
@@ -85,4 +87,6 @@ class GuardrailComplianceValidator(BaseValidator):
                         error="Formatting issue: excessive markdown characters.",
                         code="formatting_issue"
                     ))
+                current += 1
+                self.report_progress(current, total)
         return errors

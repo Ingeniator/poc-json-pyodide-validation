@@ -22,7 +22,7 @@ class QuantitySizeValidator(BaseValidator):
                 error=f"Dataset has only {len(data)} dialogs; at least {min_samples} are required.",
                 code="too_few_dialogs"
             ))
-
+        self.report_progress(0, len(data))
         # Optional: Check that each dialog has at least a minimum number of turns.
         min_turns = self.options.get("min_turns", 2)
         for i, item in enumerate(data):
@@ -35,5 +35,6 @@ class QuantitySizeValidator(BaseValidator):
                     error=f"Dialog {i} has only {len(dialog)} turn(s); at least {min_turns} are recommended.",
                     code="too_few_turns"
                 ))
+            self.report_progress(i + 1, len(data))
 
         return errors

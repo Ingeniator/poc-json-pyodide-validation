@@ -23,8 +23,10 @@ class ValidationErrorDetail(BaseModel):
 
 class BaseValidator(ABC):
 
-    def __init__(self, options: dict[str, Any] = None):
+    def __init__(self, options: dict[str, Any] = None, progress_callback=None):
         self.options = options or {}
+        self.progress_callback = progress_callback
+        self.validator_name = self.__class__.__name__
 
     async def validate(self, js_data: "JsProxy | list[dict[str, Any]]") -> dict[str, Any]:
         """
@@ -52,6 +54,17 @@ class BaseValidator(ABC):
                     "errors": str(e),
                     "validator": self.__class__.__name__
                 }
+
+    def report_progress(self, current: int, total: int):
+        if self.progress_callback:
+            try:
+                self.progress_callback({
+                    "validator": self.validator_name,
+                    "current": current,
+                    "total": total
+                })
+            except Exception as e:
+                print(f"Progress callback failed: {e}")
 
     @abstractmethod
     async def _validate(self, data: list[dict[str, Any]]) -> list[ValidationErrorDetail]:

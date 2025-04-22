@@ -18,7 +18,7 @@ class Message(BaseModel):
 class ChatSample(BaseModel):
     messages: list[Message]
 
-    @validator("messages")
+    @validator("messages", allow_reuse=True)
     def must_start_with_user(cls, v):
         if not v:
             raise ValueError("Chat must contain messages.")
@@ -47,4 +47,5 @@ class ChatStructureValidator(BaseValidator):
                     error=str(e),
                     code="schema_validation"
                 ))
+            self.report_progress(i + 1, len(data))
         return errors

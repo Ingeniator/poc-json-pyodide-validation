@@ -15,7 +15,8 @@ URL_PATTERN = re.compile(r"https?://[^\s]+")
 class LinkAvailabilityValidator(BaseValidator):
     async def _validate(self, data: list[dict]) -> list[ValidationErrorDetail]:
         errors: list[ValidationErrorDetail] = []
-
+        total = sum(len(item.get("messages", [])) for item in data)
+        current = 0
         for i, sample in enumerate(data):
             messages = sample.get("messages", [])
             for j, msg in enumerate(messages):
@@ -32,12 +33,13 @@ class LinkAvailabilityValidator(BaseValidator):
                                 error=f"URL {url} returned status {resp.status}",
                                 code="unavailable_url"
                             ))
-                    except Exception as e:
+                    except BaseException as e:
                         errors.append(ValidationErrorDetail(
                             index=i,
                             field=f"messages[{j}].content",
                             error=f"URL {url} fetch failed: {str(e)}",
                             code="fetch_error"
                         ))
-
+                current += 1
+                self.report_progress(current, total)
         return errors

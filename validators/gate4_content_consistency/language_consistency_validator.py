@@ -113,5 +113,6 @@ class LanguageConsistencyValidator(BaseValidator):
                     error=f"Language detection error: {str(e)}",
                     code="detection_exception"
                 ))
+            self.report_progress(i + 1, len(data))
 
         return errors

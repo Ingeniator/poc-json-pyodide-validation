@@ -44,6 +44,7 @@ class JsonValidator extends HTMLElement {
       <div id="validator-list"></div>
       <button id="validate">Validate</button>
       <button id="submit" style="display: none;">Submit</button>
+      <pre id="progress">Validation progress will appear here</pre>
       <pre id="output">Validation output will appear here</pre>
     `;
   }
@@ -183,6 +184,12 @@ class JsonValidator extends HTMLElement {
     }
   }
 
+  async function onValidationProgress(update) {
+    console.log(`[${update.validator}] ${update.current} / ${update.total}`);
+    document.getElementById("progress").textContent = 
+      `Running: ${update.validator} — ${update.current} / ${update.total}`;
+  }
+
   async runValidation() {
     this.output.textContent = "⏳ Waiting for Python engine...";
     this.py = await initPyodide();  // waits if still loading
@@ -250,6 +257,7 @@ class JsonValidator extends HTMLElement {
         `);
         await this.py.runPythonAsync(code);
 
+        this.py.globals.set("progress_callback", this.onValidationProgress);
         await this.py.runPythonAsync(`
                   import inspect
                   import builtins
@@ -257,14 +265,14 @@ class JsonValidator extends HTMLElement {
                   from validators.base_validator import BaseValidator
 
                   # Read options from the injected JSON string
-                  my_options = json.loads('${JSON.stringify(options)}')
+                  my_options = json.loads('${JSON.stringify(JSON.stringify(options))}')
                   for name, obj in list(globals().items()):
                     if (
                         inspect.isclass(obj)
                         and issubclass(obj, BaseValidator)
                         and obj is not BaseValidator
                       ):
-                        builtins.__current_validator__ = obj(options=my_options)
+                        builtins.__current_validator__ = obj(options=my_options, progress_callback=progress_callback)
                         break
                   `);
         this.py.globals.set("input_data", data);
@@ -275,6 +283,7 @@ class JsonValidator extends HTMLElement {
                         import json
                         import builtins
                         async def _run_validate():
+                          v = None  # initialize
                           try:
                               global output_result, output_result_json
                               v = __import__('builtins').__current_validator__
@@ -283,7 +292,7 @@ class JsonValidator extends HTMLElement {
                               output_result = {
                                   "status": "fail",
                                   "errors": traceback.format_exc(),
-                                  "validator": v.__class__.__name__
+                                  "validator": v.__class__.__name__ if v else "unknown"
                               }
                           output_result_json = json.dumps(output_result)
                         await _run_validate()

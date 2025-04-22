@@ -34,7 +34,9 @@ class DialogBalanceValidator(BaseValidator):
         #       {"role": "assistant", "content": "Hi, how can I help?"}
         #   ]
         # }
-        
+        stage = 0
+        total_stages = 4
+        self.report_progress(stage, total_stages)
         # Convert dialogs into a DataFrame with one row per dialog
         dialogs = []
         for i, item in enumerate(data):
@@ -55,7 +57,9 @@ class DialogBalanceValidator(BaseValidator):
                 code="empty_dataset"
             ))
             return errors
-        
+        stage+=1
+        self.report_progress(stage, total_stages)
+
         df = pd.DataFrame(dialogs)
         
         # Check 1: Distribution of dialog lengths
@@ -72,7 +76,9 @@ class DialogBalanceValidator(BaseValidator):
                 error=f"Dialogs seem excessively long on average ({avg_length:.1f} turns).",
                 code="long_dialogs"
             ))
-        
+        stage+=1
+        self.report_progress(stage, total_stages)
+
         # Check 2: Ratio of user to assistant messages
         df["role_ratio"] = df["user_count"] / (df["assistant_count"] + 1e-6)  # avoid division by zero
         avg_ratio = df["role_ratio"].mean()
@@ -88,7 +94,9 @@ class DialogBalanceValidator(BaseValidator):
                 error=f"User messages are overrepresented (user/assistant ratio: {avg_ratio:.2f}).",
                 code="user_overrepresented"
             ))
-        
+        stage+=1
+        self.report_progress(stage, total_stages)
+
         # Optional: Create a distribution plot and attach it to errors for review
         fig, ax = plt.subplots(figsize=(6, 4))
         df["length"].plot(kind="hist", ax=ax, bins=10)
@@ -106,5 +114,7 @@ class DialogBalanceValidator(BaseValidator):
             code="dialog_length_plot",
             field="visualization",
         ))
+        stage+=1
+        self.report_progress(stage, total_stages)
         
         return errors

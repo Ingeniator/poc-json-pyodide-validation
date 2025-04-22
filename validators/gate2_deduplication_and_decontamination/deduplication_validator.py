@@ -37,5 +37,6 @@ class DeduplicationValidator(BaseValidator):
                 )
             else:
                 seen[key] = i
+            self.report_progress(i + 1, len(data))
 
         return errors
