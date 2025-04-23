@@ -1,0 +1,6 @@
+gitlab:
+  url: "https://gitlab.com"
+  private_token: "your_personal_access_token"
+  project_id: "your-namespace/project-name"
+  ref: "main"
+  path: ""
